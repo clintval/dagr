@@ -166,22 +166,24 @@ private[config] trait ConfigurationLike extends LazyLogging {
   }
 
   /**
-    * Attempts to determine the path to an executable, first by looking it up in config,
-    * and if that fails, by attempting to locate it on the system path. If both fail then
-    * an exception is raised.
+    * Attempts to determine the path to an executable, first by looking it up in config and optionally testing to see if
+    * that filepath exists. If that fails, attempt to locate the executable on the system path. If both fail then an
+    * exception is raised.
     *
     * @param path the configuration path to look up
     * @param executable the default name of the executable
+    * @param checkExists if the config contains an executable path, check to see if the file exists before moving on
     * @return An absolute path to the executable to use
     */
-  def configureExecutable(path: String, executable: String) : Path = {
+  def configureExecutable(path: String, executable: String, checkExists: Boolean = false) : Path = {
     Configuration.RequestedKeys += path
 
     optionallyConfigure[Path](path) match {
-      case Some(exec) => exec
+      case Some(exec) if !checkExists => exec
+      case Some(exec) if checkExists && Files.exists(exec) => exec
       case None => findInPath(executable) match {
         case Some(exec) => exec
-        case None => throw new Generic(s"Could not configurable executable. Config path '$path' is not defined and executable '$executable' is not in PATH.")
+        case None => throw new Generic(s"Could not configurable executable. Config path '$path' lookup failed and executable '$executable' is not in PATH.")
       }
     }
   }

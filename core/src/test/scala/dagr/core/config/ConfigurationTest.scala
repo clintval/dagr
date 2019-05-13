@@ -135,12 +135,17 @@ class ConfigurationTest extends UnitSpec with CaptureSystemStreams {
 
   it should "find executables" in {
     conf.configureExecutable("some-executable", "n/a") shouldBe PathUtil.pathTo("/does/not/exist")
+    conf.configureExecutable("some-executable", "java") shouldBe PathUtil.pathTo("/does/not/exist")
     conf.configureExecutableFromBinDirectory("some-executable", "exec") shouldBe PathUtil.pathTo("/does/not/exist/exec")
     conf.configureExecutableFromBinDirectory("some-executable", "exec", Some(Paths.get("some", "subdir"))) shouldBe PathUtil.pathTo("/does/not/exist/some/subdir/exec")
 
     var java = conf.configureExecutable("java.exe", "java")
     java.getFileName.toString shouldBe "java"
     Files.isExecutable(java) shouldBe true
+
+    // The key exists in the configuration file, but the file path does not exist, so fallback to search the system path
+    java = conf.configureExecutable("some-executable", executable = "java", checkExists = true)
+    java.getFileName.toString shouldBe "java"
 
     // the bin directory should not be found, and so should fall back on the system path, and find the java executable
     java = conf.configureExecutableFromBinDirectory("path-does-not-exist", "java")
